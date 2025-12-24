@@ -141,12 +141,24 @@ export class Api {
     // Quizni boshlash
     static async startQuiz() {
         try {
-            const data = await fetchWithErrorHandling(`${API_URL}/quiz/start`, {
-                method: 'POST'
+            console.log('📡 Sending start quiz request to:', `${API_URL}/quiz/start`);
+            const response = await fetch(`${API_URL}/quiz/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server xatosi: ${response.status} - ${errorText}`);
+            }
+            
+            const data = await response.json();
+            console.log('✅ Quiz start response:', data);
             return data;
         } catch (error) {
-            console.error('Error starting quiz:', error);
+            console.error('❌ Error starting quiz:', error);
             throw error;
         }
     }
@@ -154,12 +166,24 @@ export class Api {
     // Quizni to'xtatish
     static async stopQuiz() {
         try {
-            const data = await fetchWithErrorHandling(`${API_URL}/quiz/stop`, {
-                method: 'POST'
+            console.log('📡 Sending stop quiz request to:', `${API_URL}/quiz/stop`);
+            const response = await fetch(`${API_URL}/quiz/stop`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server xatosi: ${response.status} - ${errorText}`);
+            }
+            
+            const data = await response.json();
+            console.log('✅ Quiz stop response:', data);
             return data;
         } catch (error) {
-            console.error('Error stopping quiz:', error);
+            console.error('❌ Error stopping quiz:', error);
             throw error;
         }
     }

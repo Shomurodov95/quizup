@@ -120,7 +120,7 @@ export class AdminPanel {
                 <div class="results-section">
                     <h2>Talabalar natijalari (Jami: ${this.results.length})</h2>
                     <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">
-                        💡 Ma'lumotlarni yangilash uchun "Yangilash" tugmasini bosing
+                        💡 Ma'lumotlar avtomatik yangilanadi (har 2 soniyada)
                     </p>
                     ${this.results.length === 0 
                         ? '<p class="no-results">Hozircha natijalar yo\'q</p>'
@@ -133,7 +133,6 @@ export class AdminPanel {
         this.setupEventListeners();
         this.loadQuizStatus();
         // Auto-refresh o'chirilgan
-        // this.startAutoRefresh();
     }
 
     async loadQuizStatus() {
@@ -164,42 +163,7 @@ export class AdminPanel {
         }
     }
 
-    startAutoRefresh() {
-        // Avvalgi intervalni tozalash
-        if (this.autoRefreshInterval) {
-            clearInterval(this.autoRefreshInterval);
-            this.autoRefreshInterval = null;
-        }
-        
-        console.log('🔄 Auto-refresh ishga tushirildi (har 2 soniyada)');
-        
-        // Har 2 soniyada yangilash (real-time uchun)
-        this.autoRefreshInterval = setInterval(async () => {
-            try {
-                const app = document.getElementById('app');
-                // Faqat admin panel ochiq bo'lsa yangilash
-                if (app && app.querySelector('.admin-container')) {
-                    console.log('🔄 Auto-refreshing...');
-                    const oldCount = this.results.length;
-                    await this.loadData();
-                    const newCount = this.results.length;
-                    
-                    if (oldCount !== newCount) {
-                        console.log(`📊 Talabalar soni o'zgardi: ${oldCount} → ${newCount}`);
-                    }
-                    
-                    // UI ni yangilash
-                    await this.updateUI();
-                    // Quiz status'ni ham yangilash
-                    await this.loadQuizStatus();
-                } else {
-                    console.log('⏸️ Admin panel ochiq emas, yangilash bekor qilindi');
-                }
-            } catch (error) {
-                console.error('❌ Auto-refresh error:', error);
-            }
-        }, 2000);
-    }
+    // Auto-refresh o'chirilgan - foydalanuvchi talabiga ko'ra
 
     // UI ni yangilash (to'liq render qilmasdan)
     async updateUI() {
@@ -301,12 +265,7 @@ export class AdminPanel {
         });
     }
 
-    stopAutoRefresh() {
-        if (this.autoRefreshInterval) {
-            clearInterval(this.autoRefreshInterval);
-            this.autoRefreshInterval = null;
-        }
-    }
+    // Auto-refresh o'chirilgan
 
     renderResultsTable() {
         // Natijalarni tartiblash:
@@ -430,12 +389,21 @@ export class AdminPanel {
             startQuizBtn.addEventListener('click', async () => {
                 if (confirm('Testni boshlashni tasdiqlaysizmi? Talabalar testni boshlay oladi.')) {
                     try {
-                        await Api.startQuiz();
+                        console.log('🔄 Starting quiz...');
+                        const result = await Api.startQuiz();
+                        console.log('✅ Quiz started:', result);
+                        
+                        // Status'ni yangilash
                         await this.loadQuizStatus();
+                        
+                        // Ma'lumotlarni yangilash
+                        await this.loadData();
+                        await this.updateUI();
+                        
                         alert('✅ Test boshlandi! Talabalar endi testni boshlay oladi.');
                     } catch (error) {
-                        console.error('Error starting quiz:', error);
-                        alert('❌ Xatolik yuz berdi. Qayta urinib ko\'ring.');
+                        console.error('❌ Error starting quiz:', error);
+                        alert(`❌ Xatolik yuz berdi: ${error.message || 'Noma\'lum xatolik'}\n\nIltimos, server ishlayotganini tekshiring.`);
                     }
                 }
             });
@@ -445,12 +413,17 @@ export class AdminPanel {
             stopQuizBtn.addEventListener('click', async () => {
                 if (confirm('Testni to\'xtatishni tasdiqlaysizmi? Talabalar testni boshlay olmaydi.')) {
                     try {
-                        await Api.stopQuiz();
+                        console.log('⏸️ Stopping quiz...');
+                        const result = await Api.stopQuiz();
+                        console.log('✅ Quiz stopped:', result);
+                        
+                        // Status'ni yangilash
                         await this.loadQuizStatus();
+                        
                         alert('⏸️ Test to\'xtatildi! Talabalar testni boshlay olmaydi.');
                     } catch (error) {
-                        console.error('Error stopping quiz:', error);
-                        alert('❌ Xatolik yuz berdi. Qayta urinib ko\'ring.');
+                        console.error('❌ Error stopping quiz:', error);
+                        alert(`❌ Xatolik yuz berdi: ${error.message || 'Noma\'lum xatolik'}\n\nIltimos, server ishlayotganini tekshiring.`);
                     }
                 }
             });

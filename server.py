@@ -40,8 +40,7 @@ def init_database():
     
     # Agar quiz_status bo'sh bo'lsa, default qiymat qo'shish
     cursor.execute('SELECT COUNT(*) as count FROM quiz_status')
-    count_result = cursor.fetchone()
-    if count_result and count_result[0] == 0:
+    if cursor.fetchone()['count'] == 0:
         cursor.execute('INSERT INTO quiz_status (id, quiz_started) VALUES (1, 0)')
     
     conn.commit()
@@ -302,16 +301,10 @@ def get_quiz_status():
         row = cursor.fetchone()
         conn.close()
         
-        if row:
-            quiz_started = bool(row['quiz_started'])
-        else:
-            # Agar jadval bo'sh bo'lsa, default qiymat qaytarish
-            quiz_started = False
+        quiz_started = bool(row['quiz_started']) if row else False
         return jsonify({'quizStarted': quiz_started}), 200
     except Exception as e:
         print(f"❌ Error getting quiz status: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'quizStarted': False}), 200
 
 @app.route('/api/quiz/start', methods=['POST'])
@@ -321,16 +314,13 @@ def start_quiz():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Avval jadvalda ma'lumot borligini tekshirish
+        # Agar quiz_status bo'sh bo'lsa, yaratish
         cursor.execute('SELECT COUNT(*) as count FROM quiz_status WHERE id = 1')
-        count_result = cursor.fetchone()
-        
-        if count_result and count_result['count'] > 0:
-            # Ma'lumot bor, yangilash
-            cursor.execute('UPDATE quiz_status SET quiz_started = 1, updated_at = CURRENT_TIMESTAMP WHERE id = 1')
-        else:
-            # Ma'lumot yo'q, yaratish
+        count_row = cursor.fetchone()
+        if not count_row or count_row['count'] == 0:
             cursor.execute('INSERT INTO quiz_status (id, quiz_started) VALUES (1, 1)')
+        else:
+            cursor.execute('UPDATE quiz_status SET quiz_started = 1, updated_at = CURRENT_TIMESTAMP WHERE id = 1')
         
         conn.commit()
         conn.close()
@@ -349,16 +339,13 @@ def stop_quiz():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Avval jadvalda ma'lumot borligini tekshirish
+        # Agar quiz_status bo'sh bo'lsa, yaratish
         cursor.execute('SELECT COUNT(*) as count FROM quiz_status WHERE id = 1')
-        count_result = cursor.fetchone()
-        
-        if count_result and count_result['count'] > 0:
-            # Ma'lumot bor, yangilash
-            cursor.execute('UPDATE quiz_status SET quiz_started = 0, updated_at = CURRENT_TIMESTAMP WHERE id = 1')
-        else:
-            # Ma'lumot yo'q, yaratish
+        count_row = cursor.fetchone()
+        if not count_row or count_row['count'] == 0:
             cursor.execute('INSERT INTO quiz_status (id, quiz_started) VALUES (1, 0)')
+        else:
+            cursor.execute('UPDATE quiz_status SET quiz_started = 0, updated_at = CURRENT_TIMESTAMP WHERE id = 1')
         
         conn.commit()
         conn.close()
