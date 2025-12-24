@@ -120,7 +120,7 @@ export class AdminPanel {
                 <div class="results-section">
                     <h2>Talabalar natijalari (Jami: ${this.results.length})</h2>
                     <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">
-                        💡 Ma'lumotlar avtomatik yangilanadi (har 2 soniyada)
+                        💡 Ma'lumotlarni yangilash uchun "Yangilash" tugmasini bosing
                     </p>
                     ${this.results.length === 0 
                         ? '<p class="no-results">Hozircha natijalar yo\'q</p>'
@@ -132,7 +132,8 @@ export class AdminPanel {
 
         this.setupEventListeners();
         this.loadQuizStatus();
-        this.startAutoRefresh();
+        // Auto-refresh o'chirilgan
+        // this.startAutoRefresh();
     }
 
     async loadQuizStatus() {

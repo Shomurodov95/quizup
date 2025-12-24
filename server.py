@@ -40,7 +40,8 @@ def init_database():
     
     # Agar quiz_status bo'sh bo'lsa, default qiymat qo'shish
     cursor.execute('SELECT COUNT(*) as count FROM quiz_status')
-    if cursor.fetchone()['count'] == 0:
+    count_result = cursor.fetchone()
+    if count_result and count_result[0] == 0:
         cursor.execute('INSERT INTO quiz_status (id, quiz_started) VALUES (1, 0)')
     
     conn.commit()
@@ -301,10 +302,16 @@ def get_quiz_status():
         row = cursor.fetchone()
         conn.close()
         
-        quiz_started = bool(row['quiz_started']) if row else False
+        if row:
+            quiz_started = bool(row['quiz_started'])
+        else:
+            # Agar jadval bo'sh bo'lsa, default qiymat qaytarish
+            quiz_started = False
         return jsonify({'quizStarted': quiz_started}), 200
     except Exception as e:
         print(f"❌ Error getting quiz status: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'quizStarted': False}), 200
 
 @app.route('/api/quiz/start', methods=['POST'])
@@ -313,13 +320,26 @@ def start_quiz():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('UPDATE quiz_status SET quiz_started = 1, updated_at = CURRENT_TIMESTAMP WHERE id = 1')
+        
+        # Avval jadvalda ma'lumot borligini tekshirish
+        cursor.execute('SELECT COUNT(*) as count FROM quiz_status WHERE id = 1')
+        count_result = cursor.fetchone()
+        
+        if count_result and count_result['count'] > 0:
+            # Ma'lumot bor, yangilash
+            cursor.execute('UPDATE quiz_status SET quiz_started = 1, updated_at = CURRENT_TIMESTAMP WHERE id = 1')
+        else:
+            # Ma'lumot yo'q, yaratish
+            cursor.execute('INSERT INTO quiz_status (id, quiz_started) VALUES (1, 1)')
+        
         conn.commit()
         conn.close()
         print("✅ Quiz started by admin")
         return jsonify({'success': True, 'message': 'Quiz boshlandi'}), 200
     except Exception as e:
         print(f"❌ Error starting quiz: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/quiz/stop', methods=['POST'])
@@ -328,13 +348,26 @@ def stop_quiz():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('UPDATE quiz_status SET quiz_started = 0, updated_at = CURRENT_TIMESTAMP WHERE id = 1')
+        
+        # Avval jadvalda ma'lumot borligini tekshirish
+        cursor.execute('SELECT COUNT(*) as count FROM quiz_status WHERE id = 1')
+        count_result = cursor.fetchone()
+        
+        if count_result and count_result['count'] > 0:
+            # Ma'lumot bor, yangilash
+            cursor.execute('UPDATE quiz_status SET quiz_started = 0, updated_at = CURRENT_TIMESTAMP WHERE id = 1')
+        else:
+            # Ma'lumot yo'q, yaratish
+            cursor.execute('INSERT INTO quiz_status (id, quiz_started) VALUES (1, 0)')
+        
         conn.commit()
         conn.close()
         print("⏸️ Quiz stopped by admin")
         return jsonify({'success': True, 'message': 'Quiz to\'xtatildi'}), 200
     except Exception as e:
         print(f"❌ Error stopping quiz: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
