@@ -21,20 +21,30 @@ npm install
 
 ## Ishga tushirish
 
-Development server:
+### Development mode:
+
+1. **Backend serverni ishga tushirish** (birinchi terminal):
+```bash
+npm run dev:server
+```
+
+2. **Frontend serverni ishga tushirish** (ikkinchi terminal):
 ```bash
 npm run dev
 ```
 
-Production build:
+Yoki faqat backend:
 ```bash
-npm run build
+npm run server
 ```
 
-Preview production build:
+### Production build:
 ```bash
+npm run build
 npm run preview
 ```
+
+**Eslatma**: Backend server `http://localhost:3001` da ishlaydi, frontend `http://localhost:3000` da.
 
 ## Foydalanish
 

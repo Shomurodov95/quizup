@@ -70,7 +70,7 @@ function showAdminPasswordPrompt() {
     passwordInput.focus();
 }
 
-function authenticateAdmin() {
+async function authenticateAdmin() {
     const passwordInput = document.getElementById('adminPasswordInput');
     const enteredPassword = passwordInput.value;
     const correctPassword = localStorage.getItem('admin_password') || 'admin';
@@ -79,7 +79,7 @@ function authenticateAdmin() {
         sessionStorage.setItem('admin_authenticated', 'true');
         currentView = 'admin';
         const admin = new AdminPanel();
-        admin.render();
+        await admin.render();
     } else {
         alert('Noto\'g\'ri parol!');
         passwordInput.value = '';

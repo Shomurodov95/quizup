@@ -1,14 +1,33 @@
 import { Storage } from './storage.js';
+import { Api } from './api.js';
 import './admin.css';
 
 export class AdminPanel {
     constructor() {
-        this.results = Storage.getAllStudents(); // Barcha talabalarni olish (faol va tugatganlar)
-        this.statistics = Storage.getStatistics();
+        this.results = [];
+        this.statistics = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            avgScore: 0
+        };
         this.autoRefreshInterval = null;
     }
 
-    render() {
+    async loadData() {
+        try {
+            this.results = await Api.getAllStudents();
+            this.statistics = await Api.getStatistics();
+        } catch (error) {
+            console.error('Error loading data:', error);
+            // Fallback to localStorage
+            this.results = Storage.getAllStudents();
+            this.statistics = Storage.getStatistics();
+        }
+    }
+
+    async render() {
+        await this.loadData();
         const app = document.getElementById('app');
         app.innerHTML = `
             <div class="admin-container">
@@ -68,10 +87,9 @@ export class AdminPanel {
         }
         
         // Har 3 soniyada yangilash
-        this.autoRefreshInterval = setInterval(() => {
-            this.results = Storage.getAllStudents();
-            this.statistics = Storage.getStatistics();
-            this.render();
+        this.autoRefreshInterval = setInterval(async () => {
+            await this.loadData();
+            await this.render();
         }, 3000);
     }
 
@@ -104,24 +122,25 @@ export class AdminPanel {
                     <tbody>
                         ${sortedResults.map((result, index) => {
                             const isTesting = result.status === 'testing';
-                            const rowClass = isTesting ? 'testing-row' : (result.passed ? 'passed-row' : 'failed-row');
+                            const passed = result.passed === 1 || result.passed === true;
+                            const rowClass = isTesting ? 'testing-row' : (passed ? 'passed-row' : 'failed-row');
                             
                             return `
                             <tr class="${rowClass}">
                                 <td>${index + 1}</td>
-                                <td>${result.studentName} ${isTesting ? '⏳' : ''}</td>
-                                <td>${result.studentGroup || 'Noma\'lum'}</td>
+                                <td>${result.student_name} ${isTesting ? '⏳' : ''}</td>
+                                <td>${result.student_group || 'Noma\'lum'}</td>
                                 <td>${isTesting ? '<span style="color: #667eea;">Test yechmoqda...</span>' : `${result.score} / 40`}</td>
                                 <td>${isTesting ? '-' : `${result.percentage}%`}</td>
                                 <td>
                                     ${isTesting 
                                         ? '<span class="status-badge testing">⏳ Test yechmoqda</span>'
-                                        : `<span class="status-badge ${result.passed ? 'success' : 'danger'}">
-                                            ${result.passed ? '✅ O\'tdi' : '❌ O\'tmadi'}
+                                        : `<span class="status-badge ${passed ? 'success' : 'danger'}">
+                                            ${passed ? '✅ O\'tdi' : '❌ O\'tmadi'}
                                            </span>`
                                     }
                                 </td>
-                                <td>${this.formatDate(result.date)}</td>
+                                <td>${this.formatDate(result.created_at || result.date)}</td>
                                 <td>
                                     ${!isTesting ? `<button type="button" class="btn-delete" data-id="${result.id}">🗑️</button>` : '-'}
                                 </td>
@@ -135,6 +154,7 @@ export class AdminPanel {
     }
 
     formatDate(dateString) {
+        if (!dateString) return '-';
         const date = new Date(dateString);
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -150,30 +170,37 @@ export class AdminPanel {
             window.location.href = '/?admin=true';
         });
 
-        document.getElementById('refreshBtn').addEventListener('click', () => {
-            this.results = Storage.getAllStudents();
-            this.statistics = Storage.getStatistics();
-            this.render();
+        document.getElementById('refreshBtn').addEventListener('click', async () => {
+            await this.loadData();
+            await this.render();
         });
 
-        document.getElementById('clearBtn').addEventListener('click', () => {
+        document.getElementById('clearBtn').addEventListener('click', async () => {
             if (confirm('Barcha natijalarni o\'chirishni tasdiqlaysizmi?')) {
-                Storage.clearAllResults();
-                this.results = [];
-                this.statistics = Storage.getStatistics();
-                this.render();
+                try {
+                    await Api.clearAllResults();
+                } catch (error) {
+                    console.error('Error clearing results:', error);
+                    Storage.clearAllResults();
+                }
+                await this.loadData();
+                await this.render();
             }
         });
 
         // Delete buttons
         document.querySelectorAll('.btn-delete').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 const id = parseInt(e.target.dataset.id);
                 if (confirm('Bu natijani o\'chirishni tasdiqlaysizmi?')) {
-                    Storage.deleteResult(id);
-                    this.results = Storage.getAllResults();
-                    this.statistics = Storage.getStatistics();
-                    this.render();
+                    try {
+                        await Api.deleteStudent(id);
+                    } catch (error) {
+                        console.error('Error deleting student:', error);
+                        Storage.deleteResult(id);
+                    }
+                    await this.loadData();
+                    await this.render();
                 }
             });
         });

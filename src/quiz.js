@@ -1,5 +1,6 @@
 import { questions } from './questions.js';
 import { Storage } from './storage.js';
+import { Api } from './api.js';
 import { goHome } from './app.js';
 
 export class Quiz {
@@ -49,9 +50,13 @@ export class Quiz {
             }
         });
 
-        groupInput.addEventListener('keypress', (e) => {
+        groupInput.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
-                handleStart();
+                if (nameInput.value.trim() && groupInput.value.trim()) {
+                    await this.beginQuiz();
+                } else {
+                    alert('Iltimos, ism va guruhni kiriting!');
+                }
             }
         });
 
@@ -59,7 +64,7 @@ export class Quiz {
         nameInput.focus();
     }
 
-    beginQuiz() {
+    async beginQuiz() {
         const nameInput = document.getElementById('studentNameInput');
         const groupInput = document.getElementById('studentGroupInput');
         this.studentName = nameInput.value.trim() || 'Noma\'lum';
@@ -69,7 +74,15 @@ export class Quiz {
         this.selectedAnswer = null;
         
         // Talaba testni boshlaganda ma'lumotlarni saqlash
-        this.activeStudentId = Storage.saveActiveStudent(this.studentName, this.studentGroup).id;
+        // Backend ga yuborish
+        try {
+            const student = await Api.addStudent(this.studentName, this.studentGroup);
+            this.activeStudentId = student?.id;
+        } catch (error) {
+            console.error('Error saving student:', error);
+            // Fallback to localStorage
+            this.activeStudentId = Storage.saveActiveStudent(this.studentName, this.studentGroup).id;
+        }
         
         this.showQuestion();
     }
@@ -150,17 +163,21 @@ export class Quiz {
         }
     }
 
-    showResults() {
+    async showResults() {
         const percentage = Math.round((this.score / questions.length) * 100);
         const passed = percentage >= 60;
 
-        // Faol ro'yxatdan o'chirish
-        if (this.activeStudentId) {
-            Storage.removeActiveStudent(this.activeStudentId);
+        // Backend ga natijani yuborish
+        try {
+            await Api.updateStudentResult(this.studentName, this.studentGroup, this.score, percentage, passed);
+        } catch (error) {
+            console.error('Error saving result:', error);
+            // Fallback to localStorage
+            if (this.activeStudentId) {
+                Storage.removeActiveStudent(this.activeStudentId);
+            }
+            Storage.saveResult(this.studentName, this.studentGroup, this.score, percentage, passed);
         }
-
-        // Natijani saqlash
-        Storage.saveResult(this.studentName, this.studentGroup, this.score, percentage, passed);
 
         const app = document.getElementById('app');
         app.innerHTML = `
