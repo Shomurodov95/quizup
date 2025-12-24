@@ -15,8 +15,14 @@ HTML va CSS haqida 40 ta savol bilan test o'yini. Vite bilan yaratilgan.
 
 ## O'rnatish
 
+### 1. Frontend dependencies:
 ```bash
 npm install
+```
+
+### 2. Backend dependencies (Python):
+```bash
+pip install -r requirements.txt
 ```
 
 ## Ishga tushirish
@@ -25,17 +31,16 @@ npm install
 
 1. **Backend serverni ishga tushirish** (birinchi terminal):
 ```bash
-npm run dev:server
+python server.py
+```
+yoki
+```bash
+npm run server
 ```
 
 2. **Frontend serverni ishga tushirish** (ikkinchi terminal):
 ```bash
 npm run dev
-```
-
-Yoki faqat backend:
-```bash
-npm run server
 ```
 
 ### Production build:
@@ -44,7 +49,10 @@ npm run build
 npm run preview
 ```
 
-**Eslatma**: Backend server `http://localhost:3001` da ishlaydi, frontend `http://localhost:3000` da.
+**Eslatma**: 
+- Backend server (Python Flask) `http://localhost:3001` da ishlaydi
+- Frontend `http://localhost:3000` da ishlaydi
+- Database: `quiz.db` (SQLite) avtomatik yaratiladi
 
 ## Foydalanish
 

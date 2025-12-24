@@ -68,9 +68,9 @@ export class AdminPanel {
                 </div>
 
                 <div class="results-section">
-                    <h2>Talabalar natijalari</h2>
+                    <h2>Talabalar natijalari (Jami: ${this.results.length})</h2>
                     <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">
-                        💡 Ma'lumotlar avtomatik yangilanadi (har 3 soniyada)
+                        💡 Ma'lumotlar avtomatik yangilanadi (har 2 soniyada)
                     </p>
                     ${this.results.length === 0 
                         ? '<p class="no-results">Hozircha natijalar yo\'q</p>'
