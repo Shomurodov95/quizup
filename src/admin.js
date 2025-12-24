@@ -2,6 +2,11 @@ import { Storage } from './storage.js';
 import { Api } from './api.js';
 import './admin.css';
 
+// Api import qilishni tekshirish
+if (typeof Api === 'undefined') {
+    console.error('Api class topilmadi!');
+}
+
 export class AdminPanel {
     constructor() {
         this.results = [];
@@ -16,19 +21,49 @@ export class AdminPanel {
 
     async loadData() {
         try {
-            this.results = await Api.getAllStudents();
-            this.statistics = await Api.getStatistics();
+            console.log('Loading data from API...');
+            const students = await Api.getAllStudents();
+            const stats = await Api.getStatistics();
+            
+            console.log('Students loaded:', students.length);
+            console.log('Statistics:', stats);
+            
+            this.results = students || [];
+            this.statistics = stats || {
+                total: 0,
+                passed: 0,
+                failed: 0,
+                avgScore: 0
+            };
         } catch (error) {
             console.error('Error loading data:', error);
             // Fallback to localStorage
-            this.results = Storage.getAllStudents();
-            this.statistics = Storage.getStatistics();
+            try {
+                this.results = Storage.getAllStudents();
+                this.statistics = Storage.getStatistics();
+            } catch (e) {
+                console.error('LocalStorage fallback error:', e);
+                this.results = [];
+                this.statistics = {
+                    total: 0,
+                    passed: 0,
+                    failed: 0,
+                    avgScore: 0
+                };
+            }
         }
     }
 
     async render() {
+        console.log('🎨 Rendering admin panel...');
         await this.loadData();
+        console.log('✅ Data loaded:', this.results.length, 'students, stats:', this.statistics);
         const app = document.getElementById('app');
+        
+        if (!app) {
+            console.error('❌ App element topilmadi!');
+            return;
+        }
         app.innerHTML = `
             <div class="admin-container">
                 <div class="admin-header">
@@ -62,6 +97,21 @@ export class AdminPanel {
                     <strong>⏳ Test yechayotgan talabalar: ${this.results.filter(r => r.status === 'testing').length}</strong>
                 </div>
 
+                <div class="quiz-control-section" style="background: #e8f4f8; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                    <h3 style="margin: 0 0 15px 0; color: #333;">🎯 Quiz Boshqaruvi</h3>
+                    <div id="quizStatusDisplay" style="margin-bottom: 15px; font-size: 1.1rem; font-weight: 600;">
+                        <span id="quizStatusText">Yuklanmoqda...</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-success" id="startQuizBtn" style="display: none;">
+                            ▶️ Testni Boshlash
+                        </button>
+                        <button type="button" class="btn btn-warning" id="stopQuizBtn" style="display: none;">
+                            ⏸️ Testni To'xtatish
+                        </button>
+                    </div>
+                </div>
+
                 <div class="admin-actions">
                     <button type="button" class="btn btn-danger" id="clearBtn">Barcha natijalarni o'chirish</button>
                     <button type="button" class="btn btn-secondary" id="refreshBtn">Yangilash</button>
@@ -81,20 +131,173 @@ export class AdminPanel {
         `;
 
         this.setupEventListeners();
+        this.loadQuizStatus();
         this.startAutoRefresh();
+    }
+
+    async loadQuizStatus() {
+        try {
+            const status = await Api.getQuizStatus();
+            this.updateQuizStatusUI(status.quizStarted);
+        } catch (error) {
+            console.error('Error loading quiz status:', error);
+            this.updateQuizStatusUI(false);
+        }
+    }
+
+    updateQuizStatusUI(quizStarted) {
+        const statusText = document.getElementById('quizStatusText');
+        const startBtn = document.getElementById('startQuizBtn');
+        const stopBtn = document.getElementById('stopQuizBtn');
+
+        if (statusText && startBtn && stopBtn) {
+            if (quizStarted) {
+                statusText.innerHTML = '<span style="color: #28a745;">✅ Test boshlandi - Talabalar testni boshlay oladi</span>';
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'inline-block';
+            } else {
+                statusText.innerHTML = '<span style="color: #dc3545;">⏸️ Test to\'xtatilgan - Talabalar testni boshlay olmaydi</span>';
+                startBtn.style.display = 'inline-block';
+                stopBtn.style.display = 'none';
+            }
+        }
     }
 
     startAutoRefresh() {
         // Avvalgi intervalni tozalash
         if (this.autoRefreshInterval) {
             clearInterval(this.autoRefreshInterval);
+            this.autoRefreshInterval = null;
         }
         
-        // Har 3 soniyada yangilash
+        console.log('🔄 Auto-refresh ishga tushirildi (har 2 soniyada)');
+        
+        // Har 2 soniyada yangilash (real-time uchun)
         this.autoRefreshInterval = setInterval(async () => {
-            await this.loadData();
+            try {
+                const app = document.getElementById('app');
+                // Faqat admin panel ochiq bo'lsa yangilash
+                if (app && app.querySelector('.admin-container')) {
+                    console.log('🔄 Auto-refreshing...');
+                    const oldCount = this.results.length;
+                    await this.loadData();
+                    const newCount = this.results.length;
+                    
+                    if (oldCount !== newCount) {
+                        console.log(`📊 Talabalar soni o'zgardi: ${oldCount} → ${newCount}`);
+                    }
+                    
+                    // UI ni yangilash
+                    await this.updateUI();
+                    // Quiz status'ni ham yangilash
+                    await this.loadQuizStatus();
+                } else {
+                    console.log('⏸️ Admin panel ochiq emas, yangilash bekor qilindi');
+                }
+            } catch (error) {
+                console.error('❌ Auto-refresh error:', error);
+            }
+        }, 2000);
+    }
+
+    // UI ni yangilash (to'liq render qilmasdan)
+    async updateUI() {
+        const app = document.getElementById('app');
+        if (!app || !app.querySelector('.admin-container')) {
+            console.log('⚠️ Admin container topilmadi, updateUI bekor qilindi');
+            return;
+        }
+
+        console.log('🔄 UI yangilanmoqda...', this.results.length, 'talaba');
+        
+        try {
+            // Statistikani yangilash
+            const statCards = app.querySelectorAll('.stat-card .stat-value');
+            if (statCards.length >= 4) {
+                statCards[0].textContent = this.results.length;
+                statCards[1].textContent = this.statistics.passed;
+                statCards[2].textContent = this.statistics.failed;
+                statCards[3].textContent = `${this.statistics.avgScore}%`;
+            }
+
+            // Test yechayotgan talabalar sonini yangilash
+            const testingCount = this.results.filter(r => r.status === 'testing').length;
+            const testingInfo = app.querySelector('.admin-stats + div');
+            if (testingInfo) {
+                testingInfo.innerHTML = `<strong>⏳ Test yechayotgan talabalar: ${testingCount}</strong>`;
+            }
+
+            // Jadvalni yangilash
+            const resultsSection = app.querySelector('.results-section');
+            if (resultsSection) {
+                const h2 = resultsSection.querySelector('h2');
+                if (h2) {
+                    h2.textContent = `Talabalar natijalari (Jami: ${this.results.length})`;
+                }
+
+                if (this.results.length === 0) {
+                    const tableContainer = resultsSection.querySelector('.table-container');
+                    const noResults = resultsSection.querySelector('.no-results');
+                    if (tableContainer) {
+                        tableContainer.remove();
+                    }
+                    if (!noResults) {
+                        const p = document.createElement('p');
+                        p.className = 'no-results';
+                        p.textContent = "Hozircha natijalar yo'q";
+                        resultsSection.appendChild(p);
+                    }
+                } else {
+                    // Jadvalni to'liq yangilash
+                    const tableContainer = resultsSection.querySelector('.table-container');
+                    const noResults = resultsSection.querySelector('.no-results');
+                    
+                    if (noResults) {
+                        noResults.remove();
+                    }
+                    
+                    // Eski jadvalni olib tashlash va yangisini qo'shish
+                    if (tableContainer) {
+                        const newTableHTML = this.renderResultsTable();
+                        tableContainer.outerHTML = newTableHTML;
+                        // Delete button event listenerlarni qo'shish
+                        this.setupDeleteButtons();
+                    } else {
+                        // Agar jadval yo'q bo'lsa, yangisini yaratish
+                        const newTableHTML = this.renderResultsTable();
+                        resultsSection.insertAdjacentHTML('beforeend', newTableHTML);
+                        this.setupDeleteButtons();
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('❌ UI yangilashda xatolik:', error);
+            // Xatolik bo'lsa, to'liq render qilish
             await this.render();
-        }, 3000);
+        }
+    }
+
+    setupDeleteButtons() {
+        // Delete buttons
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+            // Avvalgi event listenerlarni olib tashlash
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            newBtn.addEventListener('click', async (e) => {
+                const id = parseInt(e.target.dataset.id);
+                if (confirm('Bu natijani o\'chirishni tasdiqlaysizmi?')) {
+                    try {
+                        await Api.deleteStudent(id);
+                    } catch (error) {
+                        console.error('Error deleting student:', error);
+                        Storage.deleteResult(id);
+                    }
+                    await this.loadData();
+                    await this.updateUI();
+                }
+            });
+        });
     }
 
     stopAutoRefresh() {
@@ -105,12 +308,28 @@ export class AdminPanel {
     }
 
     renderResultsTable() {
-        // Natijalarni sanaga qarab teskari tartibda ko'rsatish (eng yangisi birinchi)
-        // Agar timestamp bo'lmasa, created_at yoki updated_at dan olish
+        // Natijalarni tartiblash:
+        // 1. Avval "testing" statusdagi talabalar (yuqorida) - eng yangisi birinchi
+        // 2. Keyin "completed" statusdagi talabalar (pastda) - eng yangisi pastga qo'shiladi
         const sortedResults = [...this.results].sort((a, b) => {
-            const timeA = a.timestamp || new Date(a.created_at || a.updated_at || 0).getTime();
-            const timeB = b.timestamp || new Date(b.created_at || b.updated_at || 0).getTime();
-            return timeB - timeA;
+            const aIsTesting = a.status === 'testing';
+            const bIsTesting = b.status === 'testing';
+            
+            // Testing statusdagi talabalar birinchi (eng yangisi birinchi)
+            if (aIsTesting && !bIsTesting) return -1;
+            if (!aIsTesting && bIsTesting) return 1;
+            
+            // Bir xil status bo'lsa
+            const timeA = a.timestamp || new Date(a.updated_at || a.created_at || 0).getTime();
+            const timeB = b.timestamp || new Date(b.updated_at || b.created_at || 0).getTime();
+            
+            // Testing bo'lsa: eng yangisi birinchi (DESC)
+            // Completed bo'lsa: eng yangisi pastga (ASC) - yangi ma'lumotlar pastga qo'shiladi
+            if (aIsTesting) {
+                return timeB - timeA; // DESC - eng yangisi birinchi
+            } else {
+                return timeA - timeB; // ASC - eng yangisi pastga
+            }
         });
 
         return `
@@ -202,22 +421,42 @@ export class AdminPanel {
             }
         });
 
-        // Delete buttons
-        document.querySelectorAll('.btn-delete').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const id = parseInt(e.target.dataset.id);
-                if (confirm('Bu natijani o\'chirishni tasdiqlaysizmi?')) {
+        // Quiz Start/Stop buttons
+        const startQuizBtn = document.getElementById('startQuizBtn');
+        const stopQuizBtn = document.getElementById('stopQuizBtn');
+
+        if (startQuizBtn) {
+            startQuizBtn.addEventListener('click', async () => {
+                if (confirm('Testni boshlashni tasdiqlaysizmi? Talabalar testni boshlay oladi.')) {
                     try {
-                        await Api.deleteStudent(id);
+                        await Api.startQuiz();
+                        await this.loadQuizStatus();
+                        alert('✅ Test boshlandi! Talabalar endi testni boshlay oladi.');
                     } catch (error) {
-                        console.error('Error deleting student:', error);
-                        Storage.deleteResult(id);
+                        console.error('Error starting quiz:', error);
+                        alert('❌ Xatolik yuz berdi. Qayta urinib ko\'ring.');
                     }
-                    await this.loadData();
-                    await this.render();
                 }
             });
-        });
+        }
+
+        if (stopQuizBtn) {
+            stopQuizBtn.addEventListener('click', async () => {
+                if (confirm('Testni to\'xtatishni tasdiqlaysizmi? Talabalar testni boshlay olmaydi.')) {
+                    try {
+                        await Api.stopQuiz();
+                        await this.loadQuizStatus();
+                        alert('⏸️ Test to\'xtatildi! Talabalar testni boshlay olmaydi.');
+                    } catch (error) {
+                        console.error('Error stopping quiz:', error);
+                        alert('❌ Xatolik yuz berdi. Qayta urinib ko\'ring.');
+                    }
+                }
+            });
+        }
+
+        // Delete buttons
+        this.setupDeleteButtons();
     }
 }
 

@@ -29,6 +29,20 @@ def init_database():
         )
     ''')
     
+    # Quiz status jadvali
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS quiz_status (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            quiz_started INTEGER DEFAULT 0,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Agar quiz_status bo'sh bo'lsa, default qiymat qo'shish
+    cursor.execute('SELECT COUNT(*) as count FROM quiz_status')
+    if cursor.fetchone()['count'] == 0:
+        cursor.execute('INSERT INTO quiz_status (id, quiz_started) VALUES (1, 0)')
+    
     conn.commit()
     conn.close()
     print("✅ Database initialized")
@@ -86,12 +100,16 @@ def get_all_students():
                 'status': row['status'],
                 'created_at': row['created_at'],
                 'updated_at': row['updated_at'],
-                'timestamp': row['timestamp']
+                'timestamp': row['timestamp'] if row['timestamp'] else int(datetime.now().timestamp() * 1000)
             })
         
         conn.close()
+        print(f"✅ Returning {len(students)} students")
         return jsonify(students)
     except Exception as e:
+        print(f"❌ Error getting students: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/students', methods=['POST'])
@@ -271,6 +289,53 @@ def get_statistics():
 def health_check():
     """Server holatini tekshirish"""
     return jsonify({'status': 'ok', 'message': 'Server ishlayapti'})
+
+# Quiz status API endpoints
+@app.route('/api/quiz/status', methods=['GET'])
+def get_quiz_status():
+    """Quiz status'ni olish"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT quiz_started FROM quiz_status WHERE id = 1')
+        row = cursor.fetchone()
+        conn.close()
+        
+        quiz_started = bool(row['quiz_started']) if row else False
+        return jsonify({'quizStarted': quiz_started}), 200
+    except Exception as e:
+        print(f"❌ Error getting quiz status: {e}")
+        return jsonify({'quizStarted': False}), 200
+
+@app.route('/api/quiz/start', methods=['POST'])
+def start_quiz():
+    """Quizni boshlash (admin tomonidan)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE quiz_status SET quiz_started = 1, updated_at = CURRENT_TIMESTAMP WHERE id = 1')
+        conn.commit()
+        conn.close()
+        print("✅ Quiz started by admin")
+        return jsonify({'success': True, 'message': 'Quiz boshlandi'}), 200
+    except Exception as e:
+        print(f"❌ Error starting quiz: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/quiz/stop', methods=['POST'])
+def stop_quiz():
+    """Quizni to'xtatish (admin tomonidan)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE quiz_status SET quiz_started = 0, updated_at = CURRENT_TIMESTAMP WHERE id = 1')
+        conn.commit()
+        conn.close()
+        print("⏸️ Quiz stopped by admin")
+        return jsonify({'success': True, 'message': 'Quiz to\'xtatildi'}), 200
+    except Exception as e:
+        print(f"❌ Error stopping quiz: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     print('🚀 Flask server ishga tushmoqda...')

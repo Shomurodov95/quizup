@@ -1,7 +1,8 @@
 .admin-container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 20px;
+    min-height: 100vh;
 }
 
 .admin-header {
@@ -93,6 +94,24 @@
     background: #c82333;
 }
 
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #218838;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #333;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+}
+
 .results-section {
     background: white;
     padding: 25px;
@@ -115,12 +134,33 @@
 
 .table-container {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+.table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #764ba2;
 }
 
 .results-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
+    min-width: 800px;
 }
 
 .results-table thead {
@@ -198,11 +238,10 @@
     transform: scale(1.1);
 }
 
-@media (max-width: 768px) {
-    .admin-header {
-        flex-direction: column;
-        gap: 15px;
-        text-align: center;
+/* Responsive dizayn */
+@media (max-width: 1024px) {
+    .admin-container {
+        padding: 15px;
     }
 
     .admin-stats {
@@ -210,12 +249,142 @@
     }
 
     .results-table {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-container {
+        padding: 10px;
+    }
+
+    .admin-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+        padding: 15px;
+    }
+
+    .admin-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .admin-header-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .admin-header-actions a,
+    .admin-header-actions button {
+        width: 100%;
+    }
+
+    .admin-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+
+    .stat-card {
+        padding: 20px;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+    }
+
+    .stat-label {
         font-size: 0.85rem;
+    }
+
+    .admin-actions {
+        flex-direction: column;
+    }
+
+    .admin-actions .btn {
+        width: 100%;
+    }
+
+    .results-section {
+        padding: 15px;
+    }
+
+    .results-section h2 {
+        font-size: 1.2rem;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .results-table {
+        font-size: 0.8rem;
+        min-width: 600px;
     }
 
     .results-table th,
     .results-table td {
+        padding: 10px 8px;
+    }
+
+    .results-table th {
+        font-size: 0.75rem;
         padding: 10px 5px;
+    }
+
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+
+    .btn-delete {
+        padding: 6px 10px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-container {
+        padding: 5px;
+    }
+
+    .admin-header {
+        padding: 10px;
+    }
+
+    .admin-header h1 {
+        font-size: 1.3rem;
+    }
+
+    .admin-stats {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .stat-card {
+        padding: 15px;
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+    }
+
+    .results-section {
+        padding: 10px;
+    }
+
+    .results-table {
+        font-size: 0.7rem;
+        min-width: 500px;
+    }
+
+    .results-table th,
+    .results-table td {
+        padding: 8px 4px;
+    }
+
+    .results-table th {
+        font-size: 0.7rem;
     }
 }
 

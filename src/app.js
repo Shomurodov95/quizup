@@ -47,9 +47,6 @@ function showAdminPasswordPrompt() {
                     <input type="password" id="adminPasswordInput" class="name-input" placeholder="Parol..." autocomplete="off">
                     <button type="button" class="btn btn-primary" id="loginBtn">Kirish</button>
                     <button type="button" class="btn btn-secondary" id="backBtn">Orqaga</button>
-                    <p style="color: #999; font-size: 0.9rem; margin-top: 10px;">
-                        Default parol: <strong>admin</strong>
-                    </p>
                 </div>
             </div>
         </div>
@@ -78,8 +75,10 @@ async function authenticateAdmin() {
     if (enteredPassword === correctPassword) {
         sessionStorage.setItem('admin_authenticated', 'true');
         currentView = 'admin';
+        console.log('Admin authenticated, loading panel...');
         const admin = new AdminPanel();
         await admin.render();
+        console.log('Admin panel rendered');
     } else {
         alert('Noto\'g\'ri parol!');
         passwordInput.value = '';

@@ -2,13 +2,36 @@
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
+// API xatoliklarini boshqarish
+async function fetchWithErrorHandling(url, options = {}) {
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('API request failed:', error);
+        throw error;
+    }
+}
+
 export class Api {
     // Barcha talabalarni olish
     static async getAllStudents() {
         try {
-            const response = await fetch(`${API_URL}/students`);
-            if (!response.ok) throw new Error('Network error');
-            return await response.json();
+            console.log('Fetching students from:', `${API_URL}/students`);
+            const data = await fetchWithErrorHandling(`${API_URL}/students`);
+            console.log('Students received:', data);
+            return Array.isArray(data) ? data : [];
         } catch (error) {
             console.error('Error fetching students:', error);
             return [];
@@ -18,15 +41,13 @@ export class Api {
     // Yangi talaba qo'shish (test boshlaganda)
     static async addStudent(studentName, studentGroup) {
         try {
-            const response = await fetch(`${API_URL}/students`, {
+            console.log('Adding student:', studentName, studentGroup);
+            const data = await fetchWithErrorHandling(`${API_URL}/students`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ studentName, studentGroup })
             });
-            if (!response.ok) throw new Error('Network error');
-            return await response.json();
+            console.log('Student added:', data);
+            return data;
         } catch (error) {
             console.error('Error adding student:', error);
             return null;
@@ -36,11 +57,9 @@ export class Api {
     // Talaba natijasini yangilash (test tugaganda)
     static async updateStudentResult(studentName, studentGroup, score, percentage, passed) {
         try {
-            const response = await fetch(`${API_URL}/students/update-by-name`, {
+            console.log('Updating student result:', { studentName, studentGroup, score, percentage, passed });
+            const data = await fetchWithErrorHandling(`${API_URL}/students/update-by-name`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     studentName,
                     studentGroup,
@@ -49,8 +68,8 @@ export class Api {
                     passed
                 })
             });
-            if (!response.ok) throw new Error('Network error');
-            return await response.json();
+            console.log('Student result updated:', data);
+            return data;
         } catch (error) {
             console.error('Error updating student:', error);
             return null;
@@ -88,9 +107,15 @@ export class Api {
     // Statistikalar
     static async getStatistics() {
         try {
-            const response = await fetch(`${API_URL}/statistics`);
-            if (!response.ok) throw new Error('Network error');
-            return await response.json();
+            console.log('Fetching statistics from:', `${API_URL}/statistics`);
+            const data = await fetchWithErrorHandling(`${API_URL}/statistics`);
+            console.log('Statistics received:', data);
+            return data || {
+                total: 0,
+                passed: 0,
+                failed: 0,
+                avgScore: 0
+            };
         } catch (error) {
             console.error('Error fetching statistics:', error);
             return {
@@ -99,6 +124,43 @@ export class Api {
                 failed: 0,
                 avgScore: 0
             };
+        }
+    }
+
+    // Quiz status olish
+    static async getQuizStatus() {
+        try {
+            const data = await fetchWithErrorHandling(`${API_URL}/quiz/status`);
+            return data;
+        } catch (error) {
+            console.error('Error fetching quiz status:', error);
+            return { quizStarted: false };
+        }
+    }
+
+    // Quizni boshlash
+    static async startQuiz() {
+        try {
+            const data = await fetchWithErrorHandling(`${API_URL}/quiz/start`, {
+                method: 'POST'
+            });
+            return data;
+        } catch (error) {
+            console.error('Error starting quiz:', error);
+            throw error;
+        }
+    }
+
+    // Quizni to'xtatish
+    static async stopQuiz() {
+        try {
+            const data = await fetchWithErrorHandling(`${API_URL}/quiz/stop`, {
+                method: 'POST'
+            });
+            return data;
+        } catch (error) {
+            console.error('Error stopping quiz:', error);
+            throw error;
         }
     }
 }

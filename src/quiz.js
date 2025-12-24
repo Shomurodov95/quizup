@@ -65,6 +65,18 @@ export class Quiz {
     }
 
     async beginQuiz() {
+        // Avval quiz status'ni tekshirish
+        try {
+            const quizStatus = await Api.getQuizStatus();
+            if (!quizStatus.quizStarted) {
+                alert('⏸️ Test hali boshlanmagan!\n\nIltimos, admin testni boshlashini kutib turing.');
+                return;
+            }
+        } catch (error) {
+            console.error('Error checking quiz status:', error);
+            // Xatolik bo'lsa ham davom etish (fallback)
+        }
+
         const nameInput = document.getElementById('studentNameInput');
         const groupInput = document.getElementById('studentGroupInput');
         this.studentName = nameInput.value.trim() || 'Noma\'lum';
@@ -170,6 +182,9 @@ export class Quiz {
         // Backend ga natijani yuborish
         try {
             await Api.updateStudentResult(this.studentName, this.studentGroup, this.score, percentage, passed);
+            
+            // Alert ko'rsatish - Test tugadi
+            alert(`✅ Test tugatildi!\n\nTalaba: ${this.studentName}\nGuruh: ${this.studentGroup}\nBall: ${this.score} / ${questions.length}\nFoiz: ${percentage}%\nHolat: ${passed ? '✅ O\'tdi' : '❌ O\'tmadi'}\n\nMa'lumotlar admin panelga yuborildi!`);
         } catch (error) {
             console.error('Error saving result:', error);
             // Fallback to localStorage
@@ -177,6 +192,9 @@ export class Quiz {
                 Storage.removeActiveStudent(this.activeStudentId);
             }
             Storage.saveResult(this.studentName, this.studentGroup, this.score, percentage, passed);
+            
+            // Alert ko'rsatish (fallback)
+            alert(`✅ Test tugatildi!\n\nTalaba: ${this.studentName}\nGuruh: ${this.studentGroup}\nBall: ${this.score} / ${questions.length}\nFoiz: ${percentage}%\nHolat: ${passed ? '✅ O\'tdi' : '❌ O\'tmadi'}`);
         }
 
         const app = document.getElementById('app');
