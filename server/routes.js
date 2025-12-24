@@ -1,12 +1,30 @@
 import { dbRun, dbGet, dbAll } from './database.js';
 
 export function setupRoutes(app) {
-    // Barcha talabalarni olish
+    // Barcha talabalarni olish (faol va tugatganlar)
     app.get('/api/students', async (req, res) => {
         try {
             const students = await dbAll(`
-                SELECT * FROM students 
-                ORDER BY created_at DESC
+                SELECT 
+                    id,
+                    student_name,
+                    student_group,
+                    score,
+                    percentage,
+                    passed,
+                    status,
+                    created_at,
+                    updated_at,
+                    CASE 
+                        WHEN status = 'testing' THEN strftime('%s', created_at) * 1000
+                        ELSE strftime('%s', updated_at) * 1000
+                    END as timestamp
+                FROM students 
+                ORDER BY 
+                    CASE 
+                        WHEN status = 'testing' THEN strftime('%s', created_at) * 1000
+                        ELSE strftime('%s', updated_at) * 1000
+                    END DESC
             `);
             res.json(students);
         } catch (error) {

@@ -41,7 +41,7 @@ export class AdminPanel {
 
                 <div class="admin-stats">
                     <div class="stat-card">
-                        <div class="stat-value">${this.statistics.total}</div>
+                        <div class="stat-value">${this.results.length}</div>
                         <div class="stat-label">Jami talabalar</div>
                     </div>
                     <div class="stat-card success">
@@ -56,6 +56,10 @@ export class AdminPanel {
                         <div class="stat-value">${this.statistics.avgScore}%</div>
                         <div class="stat-label">O'rtacha ball</div>
                     </div>
+                </div>
+                
+                <div style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                    <strong>⏳ Test yechayotgan talabalar: ${this.results.filter(r => r.status === 'testing').length}</strong>
                 </div>
 
                 <div class="admin-actions">
@@ -102,7 +106,12 @@ export class AdminPanel {
 
     renderResultsTable() {
         // Natijalarni sanaga qarab teskari tartibda ko'rsatish (eng yangisi birinchi)
-        const sortedResults = [...this.results].sort((a, b) => b.timestamp - a.timestamp);
+        // Agar timestamp bo'lmasa, created_at yoki updated_at dan olish
+        const sortedResults = [...this.results].sort((a, b) => {
+            const timeA = a.timestamp || new Date(a.created_at || a.updated_at || 0).getTime();
+            const timeB = b.timestamp || new Date(b.created_at || b.updated_at || 0).getTime();
+            return timeB - timeA;
+        });
 
         return `
             <div class="table-container">
@@ -121,17 +130,22 @@ export class AdminPanel {
                     </thead>
                     <tbody>
                         ${sortedResults.map((result, index) => {
-                            const isTesting = result.status === 'testing';
+                            const isTesting = result.status === 'testing' || result.status === 'testing';
                             const passed = result.passed === 1 || result.passed === true;
                             const rowClass = isTesting ? 'testing-row' : (passed ? 'passed-row' : 'failed-row');
+                            
+                            // Field nomlarini tekshirish (backend dan kelgan ma'lumotlar)
+                            const studentName = result.student_name || result.studentName;
+                            const studentGroup = result.student_group || result.studentGroup;
+                            const dateField = result.created_at || result.date;
                             
                             return `
                             <tr class="${rowClass}">
                                 <td>${index + 1}</td>
-                                <td>${result.student_name} ${isTesting ? '⏳' : ''}</td>
-                                <td>${result.student_group || 'Noma\'lum'}</td>
-                                <td>${isTesting ? '<span style="color: #667eea;">Test yechmoqda...</span>' : `${result.score} / 40`}</td>
-                                <td>${isTesting ? '-' : `${result.percentage}%`}</td>
+                                <td><strong>${studentName || 'Noma\'lum'}</strong> ${isTesting ? '⏳' : ''}</td>
+                                <td>${studentGroup || 'Noma\'lum'}</td>
+                                <td>${isTesting ? '<span style="color: #667eea; font-weight: 600;">Test yechmoqda...</span>' : `${result.score || 0} / 40`}</td>
+                                <td>${isTesting ? '-' : `${result.percentage || 0}%`}</td>
                                 <td>
                                     ${isTesting 
                                         ? '<span class="status-badge testing">⏳ Test yechmoqda</span>'
@@ -140,7 +154,7 @@ export class AdminPanel {
                                            </span>`
                                     }
                                 </td>
-                                <td>${this.formatDate(result.created_at || result.date)}</td>
+                                <td>${this.formatDate(dateField)}</td>
                                 <td>
                                     ${!isTesting ? `<button type="button" class="btn-delete" data-id="${result.id}">🗑️</button>` : '-'}
                                 </td>
