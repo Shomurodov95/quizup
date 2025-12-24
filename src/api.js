@@ -138,9 +138,29 @@ export class Api {
         }
     }
 
+    // Server holatini tekshirish
+    static async checkServerHealth() {
+        try {
+            const response = await fetch(`${API_URL}/health`, {
+                method: 'GET',
+                timeout: 5000
+            });
+            return response.ok;
+        } catch (error) {
+            console.error('Server health check failed:', error);
+            return false;
+        }
+    }
+
     // Quizni boshlash
     static async startQuiz() {
         try {
+            // Avval server ishlayotganini tekshirish
+            const serverOk = await this.checkServerHealth();
+            if (!serverOk) {
+                throw new Error('Server ishlamayapti! Iltimos, server.py ni ishga tushiring.');
+            }
+
             console.log('📡 Sending start quiz request to:', `${API_URL}/quiz/start`);
             const response = await fetch(`${API_URL}/quiz/start`, {
                 method: 'POST',
@@ -166,6 +186,12 @@ export class Api {
     // Quizni to'xtatish
     static async stopQuiz() {
         try {
+            // Avval server ishlayotganini tekshirish
+            const serverOk = await this.checkServerHealth();
+            if (!serverOk) {
+                throw new Error('Server ishlamayapti! Iltimos, server.py ni ishga tushiring.');
+            }
+
             console.log('📡 Sending stop quiz request to:', `${API_URL}/quiz/stop`);
             const response = await fetch(`${API_URL}/quiz/stop`, {
                 method: 'POST',

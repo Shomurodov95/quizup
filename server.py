@@ -40,7 +40,10 @@ def init_database():
     
     # Agar quiz_status bo'sh bo'lsa, default qiymat qo'shish
     cursor.execute('SELECT COUNT(*) as count FROM quiz_status')
-    if cursor.fetchone()['count'] == 0:
+    count_result = cursor.fetchone()
+    # fetchone() tuple qaytaradi, shuning uchun index orqali olish kerak
+    count = count_result[0] if count_result else 0
+    if count == 0:
         cursor.execute('INSERT INTO quiz_status (id, quiz_started) VALUES (1, 0)')
     
     conn.commit()

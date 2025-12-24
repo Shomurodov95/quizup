@@ -99,6 +99,9 @@ export class AdminPanel {
 
                 <div class="quiz-control-section" style="background: #e8f4f8; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
                     <h3 style="margin: 0 0 15px 0; color: #333;">🎯 Quiz Boshqaruvi</h3>
+                    <div id="serverStatusDisplay" style="margin-bottom: 10px; font-size: 0.9rem;">
+                        <span id="serverStatusText">Server tekshirilmoqda...</span>
+                    </div>
                     <div id="quizStatusDisplay" style="margin-bottom: 15px; font-size: 1.1rem; font-weight: 600;">
                         <span id="quizStatusText">Yuklanmoqda...</span>
                     </div>
@@ -131,8 +134,29 @@ export class AdminPanel {
         `;
 
         this.setupEventListeners();
+        this.checkServerStatus();
         this.loadQuizStatus();
         // Auto-refresh o'chirilgan
+    }
+
+    async checkServerStatus() {
+        try {
+            const serverOk = await Api.checkServerHealth();
+            const statusText = document.getElementById('serverStatusText');
+            if (statusText) {
+                if (serverOk) {
+                    statusText.innerHTML = '<span style="color: #28a745;">✅ Server ishlayapti</span>';
+                } else {
+                    statusText.innerHTML = '<span style="color: #dc3545;">❌ Server ishlamayapti! Iltimos, server.py ni ishga tushiring.</span>';
+                }
+            }
+        } catch (error) {
+            console.error('Error checking server status:', error);
+            const statusText = document.getElementById('serverStatusText');
+            if (statusText) {
+                statusText.innerHTML = '<span style="color: #dc3545;">❌ Server tekshirishda xatolik</span>';
+            }
+        }
     }
 
     async loadQuizStatus() {
