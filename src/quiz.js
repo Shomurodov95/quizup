@@ -67,14 +67,22 @@ export class Quiz {
     async beginQuiz() {
         // Avval quiz status'ni tekshirish
         try {
+            console.log('🔍 Checking quiz status before starting...');
             const quizStatus = await Api.getQuizStatus();
-            if (!quizStatus.quizStarted) {
-                alert('⏸️ Test hali boshlanmagan!\n\nIltimos, admin testni boshlashini kutib turing.');
+            console.log('📊 Quiz status:', quizStatus);
+            
+            if (!quizStatus || !quizStatus.quizStarted) {
+                const errorMsg = quizStatus?.error 
+                    ? `⏸️ Server bilan bog'lanishda muammo!\n\nXatolik: ${quizStatus.error}\n\nIltimos, server ishlayotganini tekshiring.`
+                    : '⏸️ Test hali boshlanmagan!\n\nIltimos, admin testni boshlashini kutib turing.';
+                alert(errorMsg);
                 return;
             }
+            console.log('✅ Quiz started, proceeding...');
         } catch (error) {
-            console.error('Error checking quiz status:', error);
-            // Xatolik bo'lsa ham davom etish (fallback)
+            console.error('❌ Error checking quiz status:', error);
+            alert(`⏸️ Server bilan bog'lanishda muammo!\n\nXatolik: ${error.message}\n\nIltimos, server ishlayotganini tekshiring.`);
+            return;
         }
 
         const nameInput = document.getElementById('studentNameInput');

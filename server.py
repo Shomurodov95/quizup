@@ -302,13 +302,23 @@ def get_quiz_status():
         cursor = conn.cursor()
         cursor.execute('SELECT quiz_started FROM quiz_status WHERE id = 1')
         row = cursor.fetchone()
-        conn.close()
         
-        quiz_started = bool(row['quiz_started']) if row else False
+        if row:
+            quiz_started = bool(row['quiz_started'])
+        else:
+            # Agar jadval bo'sh bo'lsa, default qiymat qo'shish
+            cursor.execute('INSERT INTO quiz_status (id, quiz_started) VALUES (1, 0)')
+            conn.commit()
+            quiz_started = False
+        
+        conn.close()
+        print(f"📊 Quiz status requested: {quiz_started}")
         return jsonify({'quizStarted': quiz_started}), 200
     except Exception as e:
         print(f"❌ Error getting quiz status: {e}")
-        return jsonify({'quizStarted': False}), 200
+        import traceback
+        traceback.print_exc()
+        return jsonify({'quizStarted': False, 'error': str(e)}), 200
 
 @app.route('/api/quiz/start', methods=['POST'])
 def start_quiz():

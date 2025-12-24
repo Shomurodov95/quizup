@@ -130,11 +130,25 @@ export class Api {
     // Quiz status olish
     static async getQuizStatus() {
         try {
-            const data = await fetchWithErrorHandling(`${API_URL}/quiz/status`);
+            console.log('📡 Fetching quiz status from:', `${API_URL}/quiz/status`);
+            const response = await fetch(`${API_URL}/quiz/status`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server xatosi: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('✅ Quiz status received:', data);
             return data;
         } catch (error) {
-            console.error('Error fetching quiz status:', error);
-            return { quizStarted: false };
+            console.error('❌ Error fetching quiz status:', error);
+            // Xatolik bo'lsa, server ishlamayapti deb hisoblaymiz
+            return { quizStarted: false, error: error.message };
         }
     }
 
